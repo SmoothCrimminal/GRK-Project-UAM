@@ -15,6 +15,7 @@
 using namespace std;
 
 int windowID;
+int flag = 0;
 GLuint programColor;
 GLuint programTexture;
 GLuint programSkybox;
@@ -24,7 +25,7 @@ GLuint programTreasure;
 Core::RenderContext bubbleContext;
 
 Core::Shader_Loader shaderLoader;
-
+int points = 0;
 Core::RenderContext shipContext;
 Core::RenderContext bottomContext;
 Core::RenderContext fishContext;
@@ -58,8 +59,8 @@ glm::mat4 cameraMatrix, perspectiveMatrix;
 
 glm::vec3 lightDir = glm::normalize(glm::vec3(-0.1f, -0.55f, -0.69f));
 glm::vec3 skyColor = glm::vec3(0.282f, 0.38f, 0.624f);
-float fogDensity = 0.03;
-float fogGradient = 0.9;
+float fogDensity = 0.02;
+float fogGradient = 0.99;
 
 glm::quat rotation = glm::quat(1, 0, 0, 0);
 
@@ -92,7 +93,7 @@ bool isTreasure1Free = true;
 bool isTreasure2Free = true;
 bool isTreasure3Free = true;
 
-glm::vec3 treasure1Localization = glm::vec3(30,445,30);
+glm::vec3 treasure1Localization = glm::vec3(30, 445, 30);
 glm::vec3 treasure2Localization = glm::vec3(239, 445, 34);
 glm::vec3 treasure3Localization = glm::vec3(153, 445, -280);;
 
@@ -102,17 +103,17 @@ float skyboxVertices[] =
 	20.0f, -20.0f,  20.0f,
 	 20.0f, 20.0f,  20.0f,
 	 20.0f, 20.0f, -20.0f,
-	20.0f, -20.0f, -20.0f, 
+	20.0f, -20.0f, -20.0f,
 
 	-20.0f,  -20.0f,  -20.0f,
 	 -20.0f,  20.0f,  -20.0f,
-	 -20.0f,  20.0f, 20.0f,    
+	 -20.0f,  20.0f, 20.0f,
 	-20.0f,  -20.0f, 20.0f,
 
 	-20.0f, 20.0f,  -20.0f,
 	 20.0f, 20.0f,  -20.0f,
 	 20.0f, 20.0f, 20.0f,
-	-20.0f, 20.0f, 20.0f, 
+	-20.0f, 20.0f, 20.0f,
 
 	-20.0f,  -20.0f,  20.0f,
 	 20.0f,  -20.0f,  20.0f,
@@ -133,19 +134,22 @@ float skyboxVertices[] =
 
 
 bool insideSkybox(glm::vec3 nextPosition) {
-	return nextPosition.x < skyboxSize && nextPosition.x > -skyboxSize
-		&& nextPosition.y > groundLevel && nextPosition.y < 470
+	return nextPosition.x < skyboxSize&& nextPosition.x > -skyboxSize
+		&& nextPosition.y > groundLevel && nextPosition.y < skyboxSize
 		&& nextPosition.z > -skyboxSize && nextPosition.z < skyboxSize;
+
+
 }
 
 void earnTreasure(glm::vec3 localization) {
 	if (localization.x < treasure1Localization.x + 10 && localization.x > treasure1Localization.x - 10
 		&& localization.y < treasure1Localization.y + 10 && localization.y > treasure1Localization.y - 10
 		&& localization.z < treasure1Localization.z + 10 && localization.z > treasure1Localization.z - 10
-		&& isTreasure1Free) 
+		&& isTreasure1Free)
 	{
+		points = points + 1;
 		isTreasure1Free = false;
-	
+
 	}
 
 	if (localization.x < treasure2Localization.x + 10 && localization.x > treasure2Localization.x - 10
@@ -153,8 +157,9 @@ void earnTreasure(glm::vec3 localization) {
 		&& localization.z < treasure2Localization.z + 10 && localization.z > treasure2Localization.z - 10
 		&& isTreasure2Free)
 	{
+		points = points + 1;
 		isTreasure2Free = false;
-		glutDestroyWindow(windowID);
+
 	}
 
 	if (localization.x < treasure3Localization.x + 10 && localization.x > treasure3Localization.x - 10
@@ -162,6 +167,7 @@ void earnTreasure(glm::vec3 localization) {
 		&& localization.z < treasure3Localization.z + 10 && localization.z > treasure3Localization.z - 10
 		&& isTreasure3Free)
 	{
+		points = points + 1;
 		isTreasure3Free = false;
 	}
 
@@ -182,6 +188,7 @@ void keyboard(unsigned char key, int x, int y)
 	case 's': desiredPosition = cameraPos - cameraDir * moveSpeed; if (insideSkybox(desiredPosition)) { cameraPos = desiredPosition; } break;
 	case 'd': desiredPosition = cameraPos + cameraSide * moveSpeed; if (insideSkybox(desiredPosition)) { cameraPos = desiredPosition; } break;
 	case 'a': desiredPosition = cameraPos - cameraSide * moveSpeed; if (insideSkybox(desiredPosition)) { cameraPos = desiredPosition; } break;
+	case 'p': flag = 30;
 	}
 
 	earnTreasure(desiredPosition);
@@ -372,6 +379,9 @@ void renderSkybox(glm::mat4 modelMatrix, GLuint textureId) {
 	glBindVertexArray(skyboxVAO);
 	glDrawArrays(GL_QUADS, 0, 24);
 	glBindVertexArray(0);
+	glRasterPos2f(0.70, 0.85);
+	glColor4f(1, 1, 0, 1);
+
 
 	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 
@@ -381,7 +391,7 @@ void renderSkybox(glm::mat4 modelMatrix, GLuint textureId) {
 
 	for (int i = 0; i < 602; i++) {
 
-		if (i % 50 == 0 && checkPosition(completeRandom[i], completeRandom[i + 1]) && ((completeRandom[i] > 239 + 30 || completeRandom[i] < 239 -30) && (completeRandom[i + 1] > 34 + 30 || completeRandom[i + 1] < 34 -30)) && ((completeRandom[i] > 153 + 30 || completeRandom[i] < 153 - 30) && (completeRandom[i + 1] > -280 + 30 || completeRandom[i + 1] < -280- 30))) {
+		if (i % 50 == 0 && checkPosition(completeRandom[i], completeRandom[i + 1]) && ((completeRandom[i] > 239 + 30 || completeRandom[i] < 239 - 30) && (completeRandom[i + 1] > 34 + 30 || completeRandom[i + 1] < 34 - 30)) && ((completeRandom[i] > 153 + 30 || completeRandom[i] < 153 - 30) && (completeRandom[i + 1] > -280 + 30 || completeRandom[i + 1] < -280 - 30))) {
 			drawObjectTexture(coralContext, glm::translate(glm::vec3(completeRandom[i], groundLevel - 20, completeRandom[i + 1])) * glm::scale(glm::vec3(100.0f) * glm::vec3(0.2f)) * glm::rotate(glm::radians(90.0f), glm::vec3(-1, 0, 0)), textureCoral);
 		}
 		else if (i % 3 == 0) {
@@ -423,7 +433,7 @@ void renderScene()
 
 
 	for (int i = 0; i < 600; i++) {
-		 if (i % 2 == 0) {
+		if (i % 2 == 0) {
 			drawObjectTexture(fishContext2, glm::translate(fishPositions[i]) * glm::translate(glm::vec3(0, 420, 0)) * glm::scale(glm::vec3(0.7f) * glm::vec3(0.7f)) *
 				glm::rotate(glm::radians((time / 12) * 90.f), glm::vec3(0, 1, 0)) *
 				glm::rotate(glm::radians(90.f), glm::vec3(0, 1, 0)) *
@@ -437,7 +447,7 @@ void renderScene()
 				glm::rotate(glm::radians(90.f), glm::vec3(0, 1, 0)) *
 				glm::translate(glm::vec3(-fishRandom[i] + -fishRandom[i] / 60 * i, -fishRandom[i + 1] / 2, -fishRandom[i + 2] / 2)) *
 				glm::eulerAngleY(sin(time * 10) / 4) *
-				glm::rotate(glm::radians(160.0f), glm::vec3(0, 1, 0)), 
+				glm::rotate(glm::radians(160.0f), glm::vec3(0, 1, 0)),
 				textureFish2);
 		}
 	}
@@ -480,7 +490,7 @@ void renderScene()
 
 	for (int j = 0; j < 20; j++) {
 		for (int i = 400; i < 600; i = i + 6)
-			drawObjectTexture(bubbleContext, glm::translate(glm::vec3(completeRandom[j] / 4 + completeRandom[i] / 200, i + 800 * bubbleCount, completeRandom[j + 1] / 4 + completeRandom[i+1] / 200)) * glm::scale(glm::vec3(1.1f) * glm::vec3(0.1f)), textureBubble);
+			drawObjectTexture(bubbleContext, glm::translate(glm::vec3(completeRandom[j] / 4 + completeRandom[i] / 200, i + 800 * bubbleCount, completeRandom[j + 1] / 4 + completeRandom[i + 1] / 200)) * glm::scale(glm::vec3(1.1f) * glm::vec3(0.1f)), textureBubble);
 	}
 
 	if (bubbleCount > 0.08) {
@@ -493,14 +503,55 @@ void renderScene()
 	//cout << isTreasure1Free << endl;
 
 	if (isTreasure1Free) {
-		drawObjectTreasure(treasureContext, glm::translate(treasure1Localization) * glm::scale(glm::vec3(0.8f) * glm::vec3(0.2f)) * glm::rotate(glm::radians(90.0f), glm::vec3(-1, 0, 0)), textureTreasure);
+		if (flag > 0) {
+			drawObjectTreasure(treasureContext, glm::translate(treasure1Localization) * glm::scale(glm::vec3(0.8f) * glm::vec3(0.2f)) * glm::rotate(glm::radians(90.0f), glm::vec3(-1, 0, 0)), textureTreasure);
+			flag = flag - 1;
+		}
+		else {
+			drawObjectTexture(treasureContext, glm::translate(treasure1Localization) * glm::scale(glm::vec3(0.8f) * glm::vec3(0.2f)) * glm::rotate(glm::radians(90.0f), glm::vec3(-1, 0, 0)), textureTreasure);
+
+
+		}
 	}
 	if (isTreasure2Free) {
-		drawObjectTreasure(treasureContext, glm::translate(treasure2Localization) * glm::scale(glm::vec3(0.8f) * glm::vec3(0.2f)) * glm::rotate(glm::radians(90.0f), glm::vec3(-1, 0, 0)), textureTreasure);
+		if (flag > 0) {
+			drawObjectTreasure(treasureContext, glm::translate(treasure2Localization) * glm::scale(glm::vec3(0.8f) * glm::vec3(0.2f)) * glm::rotate(glm::radians(90.0f), glm::vec3(-1, 0, 0)), textureTreasure);
+			flag = flag - 1;
+		}
+		else {
+			drawObjectTexture(treasureContext, glm::translate(treasure2Localization) * glm::scale(glm::vec3(0.8f) * glm::vec3(0.2f)) * glm::rotate(glm::radians(90.0f), glm::vec3(-1, 0, 0)), textureTreasure);
+
+
+		}
 	}
 	if (isTreasure3Free) {
-		drawObjectTreasure(treasureContext, glm::translate(treasure3Localization) * glm::scale(glm::vec3(0.8f) * glm::vec3(0.2f)) * glm::rotate(glm::radians(90.0f), glm::vec3(-1, 0, 0)), textureTreasure);
+		if (flag > 0) {
+			drawObjectTreasure(treasureContext, glm::translate(treasure3Localization) * glm::scale(glm::vec3(0.8f) * glm::vec3(0.2f)) * glm::rotate(glm::radians(90.0f), glm::vec3(-1, 0, 0)), textureTreasure);
+			flag = flag - 1;
+		}
+		else {
+			drawObjectTexture(treasureContext, glm::translate(treasure3Localization) * glm::scale(glm::vec3(0.8f) * glm::vec3(0.2f)) * glm::rotate(glm::radians(90.0f), glm::vec3(-1, 0, 0)), textureTreasure);
+
+
+		}
 	}
+	if (points < 2) {
+		glRasterPos2f(0.70, 0.85);
+		glColor4f(200, 100, 100, 1);
+		std::string text = "Points: ";
+		text = text + std::to_string(points);
+		const unsigned char* t = reinterpret_cast<const unsigned char*>(text.c_str());
+		glutBitmapString(GLUT_BITMAP_HELVETICA_18, t);
+	}
+	else {
+		glRasterPos2f(-0.1, 0);
+		glColor4f(0.2, 0.8, 0.4, 1);
+		std::string text = "You won !!!";
+		const unsigned char* t = reinterpret_cast<const unsigned char*>(text.c_str());
+		glutBitmapString(GLUT_BITMAP_HELVETICA_18, t);
+	}
+
+
 
 	glutSwapBuffers();
 }
@@ -562,7 +613,7 @@ void init()
 	//	drawObjectTexture(plantaContext, glm::translate(glm::vec3(completeRandom[i], 445, completeRandom[i + 1])) * glm::rotate(glm::radians(0.0f), glm::vec3(-1, 0, 0)) * glm::scale(glm::vec3(2.0f) * glm::vec3(0.2f)), texturePlanta);
 
 	//}
-} 
+}
 
 void shutdown()
 {
@@ -575,13 +626,13 @@ void idle()
 	glutPostRedisplay();
 }
 
-int main(int argc, char ** argv)
+int main(int argc, char** argv)
 {
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
 	glutInitWindowPosition(200, 200);
 	glutInitWindowSize(600, 600);
-	windowID = glutCreateWindow("OpenGL Pierwszy Program");
+	windowID = glutCreateWindow("Underwater");
 	glewInit();
 	init();
 	glutKeyboardFunc(keyboard);
